@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from .commonfunctions import download_file_local, delete_local_file, download_file_local_with_query_parameters
 
+
 #### AUX FUNCTIONS
 def generate_new_filename(original_filename):
     """
