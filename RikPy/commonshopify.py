@@ -16,6 +16,8 @@ def chunker(seq, size):
 
 ##### Prepare the GraphQL MUTATIONS
 
+
+
 queryPublicationID='''
     {
       publications(first: 5) {
