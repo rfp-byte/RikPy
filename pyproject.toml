@@ -19,3 +19,5 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/rfp-byte/RikPy"
+
+# Trigger release-please workflow
