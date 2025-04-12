@@ -1,7 +1,6 @@
 import requests
 import re
 from requests_toolbelt.multipart.encoder import MultipartEncoder
-import xml.etree.ElementTree as ET
 from .customresponse import CustomResponse
 from datetime import datetime, timezone
 from .commonfunctions import rfplogger, download_file_local, delete_local_file
@@ -9,7 +8,7 @@ import time
 import json
 import os
 from dotenv import load_dotenv
-import base64
+import random
 
 def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
@@ -397,8 +396,35 @@ def Shopify_get_products_in_collection(shop="", access_token="", api_version="20
 
     return CustomResponse(data=all_products, status_code=200)
 
-def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
+class ShopifyRateLimiter:
+    def __init__(self, max_requests_per_second=2):
+        self.max_requests_per_second = max_requests_per_second
+        self.last_request_time = 0
+        self.retry_count = 0
+        self.max_retries = 5
+        self.base_delay = 1  # Base delay in seconds
 
+    def wait(self):
+        current_time = time.time()
+        time_since_last_request = current_time - self.last_request_time
+        if time_since_last_request < 1/self.max_requests_per_second:
+            time.sleep(1/self.max_requests_per_second - time_since_last_request)
+        self.last_request_time = time.time()
+
+    def handle_throttle(self):
+        self.retry_count += 1
+        if self.retry_count > self.max_retries:
+            raise Exception("Max retries exceeded")
+        
+        # Exponential backoff with jitter
+        delay = self.base_delay * (2 ** (self.retry_count - 1)) + random.uniform(0, 1)
+        time.sleep(delay)
+        return True
+
+    def reset_retry_count(self):
+        self.retry_count = 0
+
+def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/graphql.json"
     headers = {
         'Content-Type': 'application/json',
@@ -408,11 +434,13 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
     # Initialize variables for pagination
     cursor = None
     filtered_products = []
+    rate_limiter = ShopifyRateLimiter()
     
     i = 0
     while True:
         print(f"Getting products from shopify... {i}", end='\r', flush=True)
         i += 1
+        
         # Construct GraphQL query with pagination
         query = '''
         query ($cursor: String) {
@@ -449,7 +477,6 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
                                     weightUnit
                                     inventoryQuantity
                                     requiresShipping
-                                    
                                 }
                             }
                         }
@@ -478,8 +505,11 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
                 }
             }
         }
-        ''' 
+        '''
 
+        # Apply rate limiting
+        rate_limiter.wait()
+        
         # Send request to Shopify GraphQL API
         response = requests.post(url, json={'query': query, 'variables': {'cursor': cursor}}, headers=headers)
 
@@ -491,13 +521,19 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
         response_json = response.json()
         
         # Check for GraphQL errors
-        print("Checking for GraphQL errors")
         if 'errors' in response_json:
             error_message = f"GraphQL Error: {response_json['errors']}"
             print(error_message)
+            
+            # Check if it's a throttling error
+            if any(error.get('extensions', {}).get('code') == 'THROTTLED' for error in response_json['errors']):
+                if rate_limiter.handle_throttle():
+                    continue  # Retry the request
+                else:
+                    return CustomResponse(data=error_message, status_code=429)
+            
             return CustomResponse(data=error_message, status_code=400)
 
-        print("Checking for data in response")
         if 'data' not in response_json:
             error_message = "No data in response"
             print(error_message)
@@ -505,8 +541,8 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
 
         products = response_json['data']['products']['edges']
         page_info = response_json['data']['products']['pageInfo']
-        cursor = page_info['endCursor'] if page_info['hasNextPage'] else None      
-        
+        cursor = page_info['endCursor'] if page_info['hasNextPage'] else None
+
         # BUILD THE PRODUCT OBJECT
         for edge in products:
             node = edge['node']
@@ -538,6 +574,8 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
             }
 
             filtered_products.append(product_dict)
+
+        rate_limiter.reset_retry_count()  # Reset retry count on successful request
 
         if not page_info['hasNextPage']:
             break
