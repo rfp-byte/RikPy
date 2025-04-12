@@ -20,13 +20,6 @@ jobs:
         with:
           release-type: python
           token: ${{ secrets.GITHUB_TOKEN }}
-          command: github-release
-          bump-minor-pre-major: true
-          pull-request-title-pattern: "chore: release ${version}"
-          release-label: "autorelease: pending"
-          auto-merge: true
-          auto-merge-method: squash
-          package-name: rikpy
-          draft: false
-          prerelease: false
-          publish: true
+          skip-github-release: false
+          skip-github-pull-request: false
+          skip-labeling: false
