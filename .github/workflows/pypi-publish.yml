@@ -2,12 +2,13 @@ name: Publish to PyPI
 
 on:
   release:
-    types: [created]
+    types: [created, published]
   workflow_dispatch:
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    if: github.event.release.published == true || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
