@@ -23,4 +23,4 @@ Homepage = "https://github.com/rfp-byte/RikPy"
 [tool.hatch.build.targets.wheel]
 packages = ["RikPy"]
 
-# Trigger release-please workflow 
+# Trigger release-please workflow  
