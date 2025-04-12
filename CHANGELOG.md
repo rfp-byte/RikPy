@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](github.com/rfp-byte/RikPy/compare/v2.0.2...v2.0.3) (2025-04-12)
+
+
+### Bug Fixes
+
+* rate limit ([d216ea0](github.com/rfp-byte/RikPy/commit/d216ea069ad06086cbcb559a187e228081b02d00))
+
 ## [2.0.2](github.com/rfp-byte/RikPy/compare/v2.0.1...v2.0.2) (2025-04-12)
 
 
