@@ -399,9 +399,6 @@ def Shopify_get_products_in_collection(shop="", access_token="", api_version="20
 
 def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
 
-    print("-"*80)
-    print("Starting Shopify_get_products_query")
-
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/graphql.json"
     headers = {
         'Content-Type': 'application/json',
@@ -414,7 +411,7 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
     
     i = 0
     while True:
-        print(f"Getting products... {i}", end='\r', flush=True)
+        print(f"Getting products from shopify... {i}", end='\r', flush=True)
         i += 1
         # Construct GraphQL query with pagination
         query = '''
@@ -484,18 +481,14 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
         ''' 
 
         # Send request to Shopify GraphQL API
-        print(f"Sending request to Shopify GraphQL API")
         response = requests.post(url, json={'query': query, 'variables': {'cursor': cursor}}, headers=headers)
-        print(f"Response: {response}")
 
         if response.status_code != 200:
             error_message = f"Failed to retrieve products: {response.status_code}"
             print(error_message)
             return CustomResponse(data=error_message, status_code=400)
         
-        print("Converting response to json")
         response_json = response.json()
-        print(f"Response from shopify: {response_json}")
         
         # Check for GraphQL errors
         print("Checking for GraphQL errors")
@@ -510,13 +503,11 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
             print(error_message)
             return CustomResponse(data=error_message, status_code=400)
 
-        print("Extracting products from response")
         products = response_json['data']['products']['edges']
         page_info = response_json['data']['products']['pageInfo']
         cursor = page_info['endCursor'] if page_info['hasNextPage'] else None      
         
         # BUILD THE PRODUCT OBJECT
-        print("Building the product object")
         for edge in products:
             node = edge['node']
             # Construct a product dictionary with the required fields
@@ -548,15 +539,10 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
 
             filtered_products.append(product_dict)
 
-        print("Checking if there are more pages to fetch")
         if not page_info['hasNextPage']:
-            print("No more pages to fetch")
             break
 
-        print("Fetching next page")
-
-    print(f"Finished and returning from Shopify_get_products_query")
-    print("-"*80)
+    print(f"Total products retrieved: {len(filtered_products)}")
 
     return CustomResponse(data=filtered_products, status_code=200)
 
