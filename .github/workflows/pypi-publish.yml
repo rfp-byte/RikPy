@@ -8,8 +8,14 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    if: github.event.release.published == true || github.event_name == 'workflow_dispatch'
     steps:
+      - name: Debug Release Info
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Release event: ${{ toJson(github.event.release) }}"
+          echo "Release tag: ${{ github.event.release.tag_name }}"
+          echo "Release published: ${{ github.event.release.published }}"
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
