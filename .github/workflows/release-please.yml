@@ -24,4 +24,3 @@ jobs:
           skip-github-pull-request: false
           skip-labeling: false
           changelog-host: github.com
-          ignore-merge-commits: true
