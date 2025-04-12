@@ -20,4 +20,9 @@ jobs:
         with:
           release-type: python
           token: ${{ secrets.GITHUB_TOKEN }}
-          command: release-pr
+          command: github-release
+          bump-minor-pre-major: true
+          pull-request-title-pattern: "chore: release ${version}"
+          release-label: "autorelease: pending"
+          auto-merge: true
+          auto-merge-method: squash
