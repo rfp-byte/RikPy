@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](github.com/rfp-byte/RikPy/compare/v2.0.0...v2.0.1) (2025-04-12)
+
+
+### Bug Fixes
+
+* change to pypi-publish ([a942819](github.com/rfp-byte/RikPy/commit/a9428196ab9a13006b1ecaceaca12488b1ec32c7))
+
 ## [2.0.0](github.com/rfp-byte/RikPy/compare/v1.0.0...v2.0.0) (2025-04-12)
 
 
