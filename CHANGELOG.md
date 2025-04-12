@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](github.com/rfp-byte/RikPy/compare/v2.0.1...v2.0.2) (2025-04-12)
+
+
+### Bug Fixes
+
+* logging in shopify ([b4d2d82](github.com/rfp-byte/RikPy/commit/b4d2d8241395055c1d7d4e2bc10291ad10cfd0cf))
+
 ## [2.0.1](github.com/rfp-byte/RikPy/compare/v2.0.0...v2.0.1) (2025-04-12)
 
 
