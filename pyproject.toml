@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "rikpy"
 version = "1.0.0"
-description = "Python package by Rik"
+description = "Python package by Rik "
 authors = [
     { name = "Rik", email = "richard@blipi.me" }
 ]
