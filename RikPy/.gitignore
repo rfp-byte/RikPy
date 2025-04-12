@@ -1,0 +1,7 @@
+# .gitignore
+
+# Ignore all CSV and XLSX files etc
+
+# Ignore .env file
+.env
+test.py

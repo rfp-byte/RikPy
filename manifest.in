@@ -1,0 +1,11 @@
+include *.txt
+include *.md
+include *.rst
+include README.*  # Include README files
+
+recursive-include RikPy *.py
+
+exclude RikPy/test.py
+exclude RikPy/.env
+exclude HOW_TO_UPLOAD_PACKAGE.txt
+exclude requirements.txt

@@ -1,0 +1,37 @@
+# Python build artifacts
+*.egg-info/
+*.egg
+dist/
+build/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+.syncmetadata
+
+# Text and data files
+*.jsonl
+*.txt
+*.log
+*.csv
+*.tsv
+*.dat
+*.data
