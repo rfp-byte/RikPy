@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.6](github.com/rfp-byte/RikPy/compare/v2.0.5...v2.0.6) (2025-04-13)
+
+
+### Bug Fixes
+
+* stop printing mutation ([b44f752](github.com/rfp-byte/RikPy/commit/b44f7529178163079f91f3af181c8c481bf5cced))
+
 ## [2.0.5](github.com/rfp-byte/RikPy/compare/v2.0.4...v2.0.5) (2025-04-13)
 
 
