@@ -438,7 +438,7 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
     
     i = 0
     while True:
-        print(f"Getting products from shopify... {i}", end='\r', flush=True)
+        print(f"[Request {i+1}] Getting products from shopify...")
         i += 1
         
         # Construct GraphQL query with pagination
@@ -515,7 +515,7 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
 
         if response.status_code != 200:
             error_message = f"Failed to retrieve products: {response.status_code}"
-            print(error_message)
+            print(f"[Error] {error_message}")
             return CustomResponse(data=error_message, status_code=400)
         
         response_json = response.json()
@@ -523,20 +523,23 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
         # Check for GraphQL errors
         if 'errors' in response_json:
             error_message = f"GraphQL Error: {response_json['errors']}"
-            print(error_message)
+            print(f"[Error] {error_message}")
             
             # Check if it's a throttling error
             if any(error.get('extensions', {}).get('code') == 'THROTTLED' for error in response_json['errors']):
+                print(f"[Rate Limiter] Throttling detected. Retry count: {rate_limiter.retry_count}")
                 if rate_limiter.handle_throttle():
+                    print(f"[Rate Limiter] Retrying after backoff...")
                     continue  # Retry the request
                 else:
+                    print(f"[Rate Limiter] Max retries ({rate_limiter.max_retries}) exceeded")
                     return CustomResponse(data=error_message, status_code=429)
             
             return CustomResponse(data=error_message, status_code=400)
 
         if 'data' not in response_json:
             error_message = "No data in response"
-            print(error_message)
+            print(f"[Error] {error_message}")
             return CustomResponse(data=error_message, status_code=400)
 
         products = response_json['data']['products']['edges']
@@ -575,12 +578,14 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
 
             filtered_products.append(product_dict)
 
+        print(f"[Success] Retrieved {len(products)} products in this batch")
         rate_limiter.reset_retry_count()  # Reset retry count on successful request
 
         if not page_info['hasNextPage']:
+            print(f"[Complete] No more pages to fetch")
             break
 
-    print(f"Total products retrieved: {len(filtered_products)}")
+    print(f"[Complete] Total products retrieved: {len(filtered_products)}")
 
     return CustomResponse(data=filtered_products, status_code=200)
 
@@ -1609,6 +1614,7 @@ def Shopify_bulk_update_products(shop="", access_token="", api_version="", file_
     print(f"Staged upload path: {staged_upload_path}")
 
     # EXECUTE THE MUTATION
+    print(f"Executing mutation {mutation} from path {staged_upload_path}...")
     custom_response=Shopify_execute_bulk_mutation(shop=shop, access_token=access_token, api_version=api_version, mutation=mutation, staged_upload_path=staged_upload_path)
     
     return CustomResponse(data=custom_response.data, status_code=custom_response.status_code)
