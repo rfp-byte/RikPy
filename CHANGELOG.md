@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.4](github.com/rfp-byte/RikPy/compare/v2.0.3...v2.0.4) (2025-04-13)
+
+
+### Bug Fixes
+
+* adjustments to throttling ([9df99e5](github.com/rfp-byte/RikPy/commit/9df99e55bb850bfc812be514f530d1e623ec76ea))
+
 ## [2.0.3](github.com/rfp-byte/RikPy/compare/v2.0.2...v2.0.3) (2025-04-12)
 
 
