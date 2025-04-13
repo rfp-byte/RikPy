@@ -1604,7 +1604,7 @@ def Shopify_bulk_update_products(shop="", access_token="", api_version="", file_
     """
 
     # UPLOAD JSONL FILE TO SHOPIFY
-    print(f"Uploading JSONL file")
+    print(f"Bulk Product Update: Uploading JSONL file")
     custom_response=Shopify_upload_jsonl(shop=shop, access_token=access_token, api_version=api_version, file_path=file_path)
     if custom_response.status_code!=200:
         message=f"Error creating staged response: {custom_response.data}"
