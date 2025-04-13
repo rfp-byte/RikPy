@@ -1614,7 +1614,8 @@ def Shopify_bulk_update_products(shop="", access_token="", api_version="", file_
     print(f"Staged upload path: {staged_upload_path}")
 
     # EXECUTE THE MUTATION
-    print(f"Executing mutation {mutation} from path {staged_upload_path}...")
+    print(f"Executing mutation staged_upload_path...")
+    # print(f"Executing mutation {mutation} from path {staged_upload_path}...")
     custom_response=Shopify_execute_bulk_mutation(shop=shop, access_token=access_token, api_version=api_version, mutation=mutation, staged_upload_path=staged_upload_path)
     
     return CustomResponse(data=custom_response.data, status_code=custom_response.status_code)
