@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.5](github.com/rfp-byte/RikPy/compare/v2.0.4...v2.0.5) (2025-04-13)
+
+
+### Bug Fixes
+
+* stop printing shopify updates ([ef5f2d1](github.com/rfp-byte/RikPy/commit/ef5f2d12ac0caf46e1702a3ed9ca3d32e044f3ae))
+
 ## [2.0.4](github.com/rfp-byte/RikPy/compare/v2.0.3...v2.0.4) (2025-04-13)
 
 
