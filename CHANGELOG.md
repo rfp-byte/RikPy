@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.8](github.com/rfp-byte/RikPy/compare/v2.0.7...v2.0.8) (2025-05-07)
+
+
+### Bug Fixes
+
+* increase shopify product limit ([dcd51e8](github.com/rfp-byte/RikPy/commit/dcd51e858f6b5b0575d7509d3baaf33b5bf4858a))
+
 ## [2.0.7](github.com/rfp-byte/RikPy/compare/v2.0.6...v2.0.7) (2025-05-07)
 
 
