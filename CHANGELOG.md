@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.7](github.com/rfp-byte/RikPy/compare/v2.0.6...v2.0.7) (2025-05-07)
+
+
+### Bug Fixes
+
+* rate limit in shopify get products ([9b6360a](github.com/rfp-byte/RikPy/commit/9b6360a65daf231781f932c596580309cd50f7da))
+
 ## [2.0.6](github.com/rfp-byte/RikPy/compare/v2.0.5...v2.0.6) (2025-04-13)
 
 
