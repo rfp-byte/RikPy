@@ -13,6 +13,34 @@ import random
 def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
+class ShopifyRateLimiter:
+    def __init__(self, max_requests_per_second=2):
+        self.max_requests_per_second = max_requests_per_second
+        self.last_request_time = 0
+        self.retry_count = 0
+        self.max_retries = 5
+        self.base_delay = 1  # Base delay in seconds
+
+    def wait(self):
+        current_time = time.time()
+        time_since_last_request = current_time - self.last_request_time
+        if time_since_last_request < 1/self.max_requests_per_second:
+            time.sleep(1/self.max_requests_per_second - time_since_last_request)
+        self.last_request_time = time.time()
+
+    def handle_throttle(self):
+        self.retry_count += 1
+        if self.retry_count > self.max_retries:
+            raise Exception("Max retries exceeded")
+        
+        # Exponential backoff with jitter
+        delay = self.base_delay * (2 ** (self.retry_count - 1)) + random.uniform(0, 1)
+        time.sleep(delay)
+        return True
+
+    def reset_retry_count(self):
+        self.retry_count = 0
+
 ##### Prepare the GraphQL MUTATIONS
 rik = 1
 
@@ -361,7 +389,7 @@ def Shopify_get_products_in_collection(shop="", access_token="", api_version="20
     any: Retrieves both active and archived products (default).
     '''
 
-    url = f"https://{shop}.myshopify.com/admin/api/{api_version}/collections/{collection_id}/products.json"
+    url = f"https://{shop}.myshopify.com/admin/api/{api_version}/collections/{collection_id}/products.json?limit=250"
 
     headers = {
         'Content-Type': 'application/json',
@@ -417,34 +445,6 @@ def Shopify_get_products_in_collection(shop="", access_token="", api_version="20
 
     print(f"[Complete] Total products retrieved: {len(all_products)}")
     return CustomResponse(data=all_products, status_code=200)
-
-class ShopifyRateLimiter:
-    def __init__(self, max_requests_per_second=2):
-        self.max_requests_per_second = max_requests_per_second
-        self.last_request_time = 0
-        self.retry_count = 0
-        self.max_retries = 5
-        self.base_delay = 1  # Base delay in seconds
-
-    def wait(self):
-        current_time = time.time()
-        time_since_last_request = current_time - self.last_request_time
-        if time_since_last_request < 1/self.max_requests_per_second:
-            time.sleep(1/self.max_requests_per_second - time_since_last_request)
-        self.last_request_time = time.time()
-
-    def handle_throttle(self):
-        self.retry_count += 1
-        if self.retry_count > self.max_retries:
-            raise Exception("Max retries exceeded")
-        
-        # Exponential backoff with jitter
-        delay = self.base_delay * (2 ** (self.retry_count - 1)) + random.uniform(0, 1)
-        time.sleep(delay)
-        return True
-
-    def reset_retry_count(self):
-        self.retry_count = 0
 
 def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/graphql.json"
