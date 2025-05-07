@@ -369,15 +369,24 @@ def Shopify_get_products_in_collection(shop="", access_token="", api_version="20
     }
 
     all_products = []
+    rate_limiter = ShopifyRateLimiter()
+    i = 0
 
     while url:
+        print(f"[Request {i+1}] Getting products from collection...")
+        i += 1
+
+        # Apply rate limiting
+        rate_limiter.wait()
 
         response = requests.get(url, headers=headers)
+        
         if response.status_code == 200:
-            products=response.json()['products']
+            products = response.json()['products']
             all_products.extend(products)
+            print(f"[Success] Retrieved {len(products)} products in this batch")
+            
             links = response.headers.get('Link', None)
-
             next_url = None
             if links:
                 for link in links.split(','):
@@ -389,11 +398,24 @@ def Shopify_get_products_in_collection(shop="", access_token="", api_version="20
             else:
                 break
 
+            rate_limiter.reset_retry_count()  # Reset retry count on successful request
 
         else:
-            print(f"Failed to retrieve products in collection {collection_id}: {response.status_code}")
+            print(f"[Error] Failed to retrieve products in collection {collection_id}: {response.status_code}")
+            
+            # Check if it's a throttling error
+            if response.status_code == 429:
+                print(f"[Rate Limiter] Throttling detected. Retry count: {rate_limiter.retry_count}")
+                if rate_limiter.handle_throttle():
+                    print(f"[Rate Limiter] Retrying after backoff...")
+                    continue  # Retry the request
+                else:
+                    print(f"[Rate Limiter] Max retries ({rate_limiter.max_retries}) exceeded")
+                    return CustomResponse(data="Rate limit exceeded", status_code=429)
+            
             return CustomResponse(data=response.text, status_code=400)
 
+    print(f"[Complete] Total products retrieved: {len(all_products)}")
     return CustomResponse(data=all_products, status_code=200)
 
 class ShopifyRateLimiter:
