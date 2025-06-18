@@ -5,6 +5,7 @@ from .customresponse import CustomResponse
 import requests
 import json
 import tiktoken
+from typing import Optional
 
 def get_default_chat_model() -> str:
     """
@@ -26,17 +27,19 @@ def get_default_image_model() -> str:
     """
     return os.getenv("OPENAI_DEFAULT_IMAGE_MODEL", "dall-e-3")
 
-def OpenAI_generate_response(prompt, openai_key="", model: str | None = None):
+def OpenAI_generate_response(prompt: str, openai_key: str = "", model: Optional[str] = None):
     
     try:
         # Executes the prompt and returns the response without parsing
         logging.info("Warming Up the Wisdom Workshop!")
-        openai.api_key = openai_key
+        
+        # Create client with API key (new OpenAI API pattern)
+        client = openai.OpenAI(api_key=openai_key)
 
         chosen_model = model or get_default_chat_model()
         logging.info(f"Assembling Words of Wisdom with {chosen_model}!")
 
-        details_response = openai.chat.completions.create(
+        details_response = client.chat.completions.create(
             model=chosen_model,
             messages=[
                 {
@@ -65,21 +68,23 @@ def OpenAI_generate_response(prompt, openai_key="", model: str | None = None):
         logging.error(f"Unexpected error in OpenAI_generate_response: {str(e)}")
         return CustomResponse(data={"error": str(e)}, status_code=500)
         
-def OpenAI_generate_image(image_prompt, number_images=1, quality="standard", size="1024x1024", 
-        openai_key="", 
-        model: str | None = None):
+def OpenAI_generate_image(image_prompt: str, number_images: int = 1, quality: str = "standard", size: str = "1024x1024", 
+        openai_key: str = "", 
+        model: Optional[str] = None):
     
     try:
         # Executes the prompt and returns the response without parsing
         
         logging.info("Sparking the Synapses of Silicon!")
-        openai.api_key = openai_key
+        
+        # Create client with API key (new OpenAI API pattern)
+        client = openai.OpenAI(api_key=openai_key)
 
         chosen_model = model or get_default_image_model()
         logging.info(f"Summoning Pixels from the Digital Depths with {chosen_model}!")
         logging.info(f"Image prompt: {image_prompt}")
         
-        image_response = openai.images.generate(
+        image_response = client.images.generate(
             model=chosen_model,
             prompt=image_prompt,
             n=number_images,
@@ -107,9 +112,9 @@ def OpenAI_generate_image(image_prompt, number_images=1, quality="standard", siz
         logging.error(f"Unexpected error in OpenAI_generate_image: {str(e)}")
         return CustomResponse(data={"error": str(e)}, status_code=500)
     
-def OpenAI_generate_image_request(image_prompt, number_images=1, quality="standard", size="1024x1024", 
-        openai_key="", 
-        model: str | None = None):
+def OpenAI_generate_image_request(image_prompt: str, number_images: int = 1, quality: str = "standard", size: str = "1024x1024", 
+        openai_key: str = "", 
+        model: Optional[str] = None):
     
     try:
         chosen_model = model or get_default_image_model()
