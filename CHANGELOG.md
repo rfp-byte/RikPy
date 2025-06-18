@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.9](github.com/rfp-byte/RikPy/compare/v2.0.8...v2.0.9) (2025-06-18)
+
+
+### Bug Fixes
+
+* new openai variables and models ([0fb2fec](github.com/rfp-byte/RikPy/commit/0fb2fec1980b92ef951609215422e4c358ab0d0f))
+
 ## [2.0.8](github.com/rfp-byte/RikPy/compare/v2.0.7...v2.0.8) (2025-05-07)
 
 
