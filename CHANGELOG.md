@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.10](github.com/rfp-byte/RikPy/compare/v2.0.9...v2.0.10) (2025-06-18)
+
+
+### Bug Fixes
+
+* new openai method ([03c250b](github.com/rfp-byte/RikPy/commit/03c250b09107ad1dc2d78be1a60e89b9c8b08b15))
+
 ## [2.0.9](github.com/rfp-byte/RikPy/compare/v2.0.8...v2.0.9) (2025-06-18)
 
 
