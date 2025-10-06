@@ -490,15 +490,11 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
                                     position
                                     inventoryPolicy
                                     compareAtPrice
-                                    inventoryManagement
                                     createdAt
                                     updatedAt
                                     taxable
                                     barcode
-                                    weight
-                                    weightUnit
                                     inventoryQuantity
-                                    requiresShipping
                                 }
                             }
                         }
@@ -653,15 +649,11 @@ def Shopify_get_product_variants_mutation(shop="", access_token="", api_version=
               position
               inventoryPolicy
               compareAtPrice
-              inventoryManagement
               createdAt
               updatedAt
               taxable
               barcode
-              weight
-              weightUnit
               inventoryQuantity
-              requiresShipping
             }
           }
         }
