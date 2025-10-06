@@ -497,9 +497,13 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2025-01"):
                                     inventoryQuantity
                                     inventoryItem {
                                         id
-                                        weight
-                                        weightUnit
                                         requiresShipping
+                                        measurement {
+                                            weight {
+                                                value
+                                                unit
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -662,9 +666,13 @@ def Shopify_get_product_variants_mutation(shop="", access_token="", api_version=
               inventoryQuantity
               inventoryItem {
                 id
-                weight
-                weightUnit
                 requiresShipping
+                measurement {
+                  weight {
+                    value
+                    unit
+                  }
+                }
               }
             }
           }
