@@ -10,6 +10,9 @@ import os
 from dotenv import load_dotenv
 import random
 
+# Shopify API Version - Update this to change API version for all functions
+API_VERSION = "2025-10"
+
 def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
@@ -117,7 +120,7 @@ def get_file_extension(mime_type):
     }
     return mime_to_extension.get(mime_type.lower(), "")
 
-def verify_token(shop="", access_token="", api_version="2025-01"):
+def verify_token(shop="", access_token="", api_version=API_VERSION):
     """
     Verify if the Shopify access token is valid by making a simple API call.
     
@@ -129,6 +132,9 @@ def verify_token(shop="", access_token="", api_version="2025-01"):
     Returns:
         bool: True if token is valid, False otherwise
     """
+    # Ensure shop has .myshopify.com domain
+    if not shop.endswith('.myshopify.com'):
+        shop = f"{shop}.myshopify.com"
     url = f"https://{shop}/admin/api/{api_version}/shop.json"
     headers = {'X-Shopify-Access-Token': access_token}
     
@@ -148,7 +154,7 @@ def verify_token(shop="", access_token="", api_version="2025-01"):
 
 ######################### GRAPHQL FUNCTIONS
 
-def Shopify_get_metaobject_gid(shop="", access_token="", api_version="2025-01", metaobject_type="", handle=""):
+def Shopify_get_metaobject_gid(shop="", access_token="", api_version=API_VERSION, metaobject_type="", handle=""):
 
     # print(f"Access token: {access_token}")
 
@@ -208,7 +214,7 @@ def Shopify_get_metaobject_gid(shop="", access_token="", api_version="2025-01", 
         print(f"Error: {response.status_code}")
         return None
 
-def Shopify_update_metaobject(shop, access_token, api_version="2025-01", metaobject_gid="", banner_url="", mobile_banner_url="", 
+def Shopify_update_metaobject(shop, access_token, api_version=API_VERSION, metaobject_gid="", banner_url="", mobile_banner_url="", 
                               product_url="", banner_title="", banner_subtitle="", button_text="", button_url="", metaobject_banner_number=1):
     
     if not shop:
@@ -274,7 +280,7 @@ def Shopify_update_metaobject(shop, access_token, api_version="2025-01", metaobj
         print(message)
         return CustomResponse(data=message, status_code=response.status_code)
 
-def Shopify_get_products(shop="", access_token="", api_version="2025-01", number_products=0):
+def Shopify_get_products(shop="", access_token="", api_version=API_VERSION, number_products=0):
 
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/products.json?limit=250"
     headers = {
@@ -310,7 +316,7 @@ def Shopify_get_products(shop="", access_token="", api_version="2025-01", number
         
     return CustomResponse(data=all_products, status_code=200)
     
-def Shopify_get_collections(shop="", access_token="", api_version="2025-01"):
+def Shopify_get_collections(shop="", access_token="", api_version=API_VERSION):
 
     url_custom = f"https://{shop}.myshopify.com/admin/api/{api_version}/custom_collections.json"
     url_smart = f"https://{shop}.myshopify.com/admin/api/{api_version}/smart_collections.json"
@@ -337,7 +343,7 @@ def Shopify_get_collections(shop="", access_token="", api_version="2025-01"):
 
     return CustomResponse(data=all_collections, status_code=200)
 
-def Shopify_get_collection_metadata(shop="", access_token="", api_version="2025-01", collection_id=""):
+def Shopify_get_collection_metadata(shop="", access_token="", api_version=API_VERSION, collection_id=""):
     '''Returns metafields and metadata'''
     metadata_url = f"https://{shop}.myshopify.com/admin/api/{api_version}/collections/{collection_id}.json"
     
@@ -372,7 +378,7 @@ def Shopify_get_collection_metadata(shop="", access_token="", api_version="2025-
 
     return CustomResponse(data=collection_metadata, status_code=200)
 
-def Shopify_get_collection_url(shop="", access_token="", api_version="2025-01", collection_id=""):    
+def Shopify_get_collection_url(shop="", access_token="", api_version=API_VERSION, collection_id=""):    
     collection_url = f"https://{shop}.myshopify.com/admin/api/{api_version}/collections/{collection_id}"
     response = requests.get(collection_url)    
     if response.status_code == 200:
@@ -381,7 +387,7 @@ def Shopify_get_collection_url(shop="", access_token="", api_version="2025-01", 
         # Handle the case where the URL does not exist
         return CustomResponse(data="Collection URL does not exist", status_code=404)
 
-def Shopify_get_products_in_collection(shop="", access_token="", api_version="2025-01", collection_id=""):
+def Shopify_get_products_in_collection(shop="", access_token="", api_version=API_VERSION, collection_id=""):
     '''
     status parameter: I've added a status parameter to the API request query string: ?status={status}. This allows you to filter products based on their status.
     active: Retrieves only active products.
@@ -446,7 +452,7 @@ def Shopify_get_products_in_collection(shop="", access_token="", api_version="20
     print(f"[Complete] Total products retrieved: {len(all_products)}")
     return CustomResponse(data=all_products, status_code=200)
 
-def Shopify_get_products_query(shop="", access_token="", api_version="2025-01"):
+def Shopify_get_products_query(shop="", access_token="", api_version=API_VERSION, test_mode=False, max_batches=2):
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/graphql.json"
     headers = {
         'Content-Type': 'application/json',
@@ -460,7 +466,14 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2025-01"):
     
     i = 0
     while True:
+        # Test mode: limit number of batches
+        if test_mode and i >= max_batches:
+            print(f"[Test Mode] Limited to {max_batches} batches for faster testing")
+            break
+            
         print(f"[Request {i+1}] Getting products from shopify...")
+        if test_mode:
+            print(f"[Test Mode] Batch {i}/{max_batches}")
         i += 1
         
         # Construct GraphQL query with pagination
@@ -471,13 +484,14 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2025-01"):
                     node {
                         id
                         title
+                        handle
                         bodyHtml
                         vendor
                         productType
                         createdAt
-                        handle
                         updatedAt
                         publishedAt
+                        templateSuffix
                         tags
                         status
                         variants(first: 250) {
@@ -486,14 +500,21 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2025-01"):
                                     id
                                     title
                                     price
+                                    presentmentPrices(first: 1) {
+                                        edges {
+                                            node {
+                                                price {
+                                                    amount
+                                                    currencyCode
+                                                }
+                                            }
+                                        }
+                                    }
+                                    barcode
                                     sku
-                                    position
                                     inventoryPolicy
                                     compareAtPrice
-                                    createdAt
-                                    updatedAt
                                     taxable
-                                    barcode
                                     inventoryQuantity
                                     inventoryItem {
                                         id
@@ -577,31 +598,86 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2025-01"):
         # BUILD THE PRODUCT OBJECT
         for edge in products:
             node = edge['node']
-            # Construct a product dictionary with the required fields
+            
+            # Process variants with all fields
+            variants = []
+            for variant_edge in node.get('variants', {}).get('edges', []):
+                variant_node = variant_edge['node']
+                
+                # Extract presentment prices
+                presentment_prices = variant_node.get('presentmentPrices', {}).get('edges', [])
+                price_info = {}
+                if presentment_prices:
+                    price_data = presentment_prices[0]['node']['price']
+                    price_info = {
+                        'amount': price_data.get('amount', ''),
+                        'currencyCode': price_data.get('currencyCode', '')
+                    }
+                
+                # Extract inventory item data
+                inventory_item = variant_node.get('inventoryItem', {})
+                weight_info = {}
+                if inventory_item and 'measurement' in inventory_item:
+                    weight_data = inventory_item['measurement'].get('weight', {})
+                    weight_info = {
+                        'value': weight_data.get('value', ''),
+                        'unit': weight_data.get('unit', '')
+                    }
+                
+                variant_dict = {
+                    'id': variant_node['id'],
+                    'title': variant_node.get('title', ''),
+                    'price': variant_node.get('price', ''),
+                    'presentment_prices': price_info,
+                    'barcode': variant_node.get('barcode', ''),
+                    'sku': variant_node.get('sku', ''),
+                    'inventoryPolicy': variant_node.get('inventoryPolicy', ''),
+                    'compareAtPrice': variant_node.get('compareAtPrice', ''),
+                    'taxable': variant_node.get('taxable', ''),
+                    'inventoryQuantity': variant_node.get('inventoryQuantity', ''),
+                    'inventoryItem': {
+                        'id': inventory_item.get('id', ''),
+                        'requiresShipping': inventory_item.get('requiresShipping', ''),
+                        'weight': weight_info
+                    }
+                }
+                variants.append(variant_dict)
+            
+            # Process images
+            images = []
+            for image_edge in node.get('images', {}).get('edges', []):
+                image_node = image_edge['node']
+                images.append({
+                    'id': image_node.get('id', ''),
+                    'src': image_node.get('src', ''),
+                    'altText': image_node.get('altText', ''),
+                    'width': image_node.get('width', ''),
+                    'height': image_node.get('height', '')
+                })
+            
+            # Main image is the first image in the images array
+            main_image_data = {}
+            if images:
+                main_image_data = images[0]  # Use first image as main image
+            
+            # Construct a product dictionary with all required fields
             product_dict = {
                 'id': node['id'],
                 'title': node['title'],
+                'handle': node.get('handle', ''),
                 'body_html': node.get('bodyHtml', ''),
                 'vendor': node.get('vendor', ''),
                 'product_type': node.get('productType', ''),
                 'created_at': node.get('createdAt', ''),
-                'handle': node.get('handle', ''),
                 'updated_at': node.get('updatedAt', ''),
                 'published_at': node.get('publishedAt', ''),
                 'template_suffix': node.get('templateSuffix', None),
-                'published_scope': node.get('publishedScope', ''),
                 'tags': node.get('tags', ''),
                 'status': node.get('status', ''),
-                'admin_graphql_api_id': node.get('adminGraphqlApiId', ''),
-                'variants': [{'id': variant['node']['id'],
-                            'product_id': node['id'],
-                            'title': variant['node'].get('title', ''),
-                            'price': variant['node'].get('price', ''),
-                            # Add other variant fields here as needed
-                            } for variant in node.get('variants', {}).get('edges', [])],
+                'variants': variants,
                 'options': node.get('options', []),
-                'images': node.get('images', {}).get('edges', []),
-                'image': node.get('image', {})
+                'images': images,
+                'image': main_image_data
             }
 
             filtered_products.append(product_dict)
@@ -617,7 +693,7 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2025-01"):
 
     return CustomResponse(data=filtered_products, status_code=200)
 
-def Shopify_get_product_variants(shop="", access_token="", api_version="2025-01", product_id=""):
+def Shopify_get_product_variants(shop="", access_token="", api_version=API_VERSION, product_id=""):
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/products/{product_id}/variants.json"
     
     headers = {
@@ -634,7 +710,7 @@ def Shopify_get_product_variants(shop="", access_token="", api_version="2025-01"
         print(f"Failed to retrieve product variants for product {product_id}: {response.status_code}")
         return CustomResponse(data=response.text, status_code=400)
 
-def Shopify_get_product_variants_mutation(shop="", access_token="", api_version="2025-01", product_id=""):
+def Shopify_get_product_variants_mutation(shop="", access_token="", api_version=API_VERSION, product_id=""):
     
     graphql_query = '''
     {
@@ -655,14 +731,11 @@ def Shopify_get_product_variants_mutation(shop="", access_token="", api_version=
                   }
                 }
               }
+              barcode
               sku
-              position
               inventoryPolicy
               compareAtPrice
-              createdAt
-              updatedAt
               taxable
-              barcode
               inventoryQuantity
               inventoryItem {
                 id
@@ -705,7 +778,7 @@ def Shopify_get_product_variants_mutation(shop="", access_token="", api_version=
 
     return CustomResponse(data=variants_with_currency, status_code=200)
 
-def Shopify_get_customers(shop="", access_token="", api_version="2025-01"):
+def Shopify_get_customers(shop="", access_token="", api_version=API_VERSION):
     # Endpoint URL for fetching customers
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/customers.json"
     
@@ -731,7 +804,7 @@ def Shopify_get_customers(shop="", access_token="", api_version="2025-01"):
     # Return a custom response containing the customers and a successful status code
     return CustomResponse(data=customers, status_code=200)
 
-def Shopify_get_products_with_metafields(shop="", access_token="", api_version="2025-01", metafield_key="custom.unpublish_after", filterdate="23/02/2024"):
+def Shopify_get_products_with_metafields(shop="", access_token="", api_version=API_VERSION, metafield_key="custom.unpublish_after", filterdate="23/02/2024"):
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/graphql.json"
     headers = {
         'Content-Type': 'application/json',
@@ -813,7 +886,7 @@ def Shopify_get_products_with_metafields(shop="", access_token="", api_version="
 
     return CustomResponse(data=filtered_products, status_code=200)
 
-def Shopify_get_products_and_inventoryid_with_metafields(shop="", access_token="", api_version="2025-01", metafield_key="custom.unpublish_after", filterdate="23/02/2024"):
+def Shopify_get_products_and_inventoryid_with_metafields(shop="", access_token="", api_version=API_VERSION, metafield_key="custom.unpublish_after", filterdate="23/02/2024"):
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/graphql.json"
     headers = {
         'Content-Type': 'application/json',
@@ -912,7 +985,7 @@ def Shopify_get_products_and_inventoryid_with_metafields(shop="", access_token="
 
     return CustomResponse(data=filtered_products, status_code=200)
 
-def Shopify_unpublish_products_channel(shop="", access_token="", api_version="2025-01", products=[], channel_id=""):
+def Shopify_unpublish_products_channel(shop="", access_token="", api_version=API_VERSION, products=[], channel_id=""):
     
     '''
     Upublishes products for a channel id by removing from channel id
@@ -963,7 +1036,7 @@ def Shopify_unpublish_products_channel(shop="", access_token="", api_version="20
 
     return CustomResponse(data=message, status_code=200)
 
-def Shopify_get_online_store_channel_id(shop="", access_token="", api_version="2025-01"):
+def Shopify_get_online_store_channel_id(shop="", access_token="", api_version=API_VERSION):
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/graphql.json"
 
     headers = {
@@ -991,7 +1064,7 @@ def Shopify_get_online_store_channel_id(shop="", access_token="", api_version="2
                 return publication['node']['id']
     return None
 
-def Shopify_reduce_inventory_by_9999(shop="", access_token="", api_version="2025-01", inventory_item_ids="", location_id=""):
+def Shopify_reduce_inventory_by_9999(shop="", access_token="", api_version=API_VERSION, inventory_item_ids="", location_id=""):
     # inventory_item_ids = ["inventory-item-id-1", "inventory-item-id-2"]  # List of inventory item IDs
 
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/graphql.json"
@@ -1035,7 +1108,7 @@ def Shopify_reduce_inventory_by_9999(shop="", access_token="", api_version="2025
         print(message)
         return CustomResponse(data=message, status_code=400)
 
-def Shopify_set_inventory_to_zero(shop="", access_token="", api_version="2025-01", inventory_item_ids="", location_id="", reason="correction", reference_document_uri=""):
+def Shopify_set_inventory_to_zero(shop="", access_token="", api_version=API_VERSION, inventory_item_ids="", location_id="", reason="correction", reference_document_uri=""):
     
     # Loop through each chunk and make the API call
     for chunk in chunker(inventory_item_ids, 250):
@@ -1086,7 +1159,7 @@ def Shopify_set_inventory_to_zero(shop="", access_token="", api_version="2025-01
     print(message)
     return CustomResponse(data=message, status_code=200)
     
-def Shopify_get_locations(shop="", access_token="", api_version="2025-01"):
+def Shopify_get_locations(shop="", access_token="", api_version=API_VERSION):
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/locations.json"
     headers = {"X-Shopify-Access-Token": access_token}
     response = requests.get(url, headers=headers)
@@ -1096,7 +1169,7 @@ def Shopify_get_locations(shop="", access_token="", api_version="2025-01"):
         print(f"Failed to retrieve locations: {response.status_code}")
         return CustomResponse(data="", status_code=400)
     
-def Shopify_get_publication_id(shop="", access_token="", api_version="2025-01", name="Online Store"):
+def Shopify_get_publication_id(shop="", access_token="", api_version=API_VERSION, name="Online Store"):
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/graphql.json"
     headers = {
         'Content-Type': 'application/json',
@@ -1113,7 +1186,7 @@ def Shopify_get_publication_id(shop="", access_token="", api_version="2025-01", 
             # print(f"Found Online Store Publication ID: {publication_id}")
     return publication_id
 
-def Shopify_get_publications(shop="", access_token="", api_version="2025-01"):
+def Shopify_get_publications(shop="", access_token="", api_version=API_VERSION):
     url = f"https://{shop}.myshopify.com/admin/api/{api_version}/graphql.json"
     
     query = '''
@@ -1752,7 +1825,7 @@ def Shopify_get_image_url_from_gid_OLD(shop, access_token, api_version, gid):
 
 ###################### SPECIFIC FUNCTIONS
     
-def Shopify_get_marketing_customer_list(shop="", access_token="", api_version="2025-01"):
+def Shopify_get_marketing_customer_list(shop="", access_token="", api_version=API_VERSION):
     ''' Returns a dictionary with 2 lists, customer who are subscribe to email marketing and cutomers subscribed to SMS marketing'''
     # Assume Shopify_get_customers is defined elsewhere and correctly returns customer data
     response = Shopify_get_customers(shop, access_token, api_version)
@@ -1789,14 +1862,14 @@ def Shopify_get_marketing_customer_list(shop="", access_token="", api_version="2
     
     return CustomResponse(data=marketing_lists, status_code=200)
     
-def Shopify_set_stock_zero_metafield_unpublish(shop="", access_token="", api_version="2025-01", metafield_key="custom.unpublish_after", filter_date="", reason="correction", reference_document_uri=""):
+def Shopify_set_stock_zero_metafield_unpublish(shop="", access_token="", api_version=API_VERSION, metafield_key="custom.unpublish_after", filter_date="", reason="correction", reference_document_uri=""):
     '''
     Set stock to zero for all products with custom.unpublish_after 
     less than the in the filter_date
     '''
     # GET PRODUCTS AND RELATED INVENTORY ID WITH METAFIELD VALUE. 
     # Has to get all products in store in batches of 250, takes 3 seconds per batch
-    custom_response = Shopify_get_products_and_inventoryid_with_metafields(shop=shop, access_token=access_token, api_version="2025-01", metafield_key=metafield_key, filterdate=filter_date)
+    custom_response = Shopify_get_products_and_inventoryid_with_metafields(shop=shop, access_token=access_token, api_version=API_VERSION, metafield_key=metafield_key, filterdate=filter_date)
     if custom_response.status_code != 200:
         error_message = "Error getting product with metafield value"
         print(error_message)
@@ -1807,7 +1880,7 @@ def Shopify_set_stock_zero_metafield_unpublish(shop="", access_token="", api_ver
     # GET INVENTORY ITEMS FOR ALL VARIANTS
     inventory_item_ids = [item_id for product in filtered_products for item_id in product['variant_inventory_item_ids']]
     # GET INVENTORY LOCATION
-    custom_response = Shopify_get_locations(shop=shop, access_token=access_token, api_version="2025-01")
+    custom_response = Shopify_get_locations(shop=shop, access_token=access_token, api_version=API_VERSION)
     if custom_response.status_code!=200:
         error_message = "Error getting locations"
         print(error_message)
@@ -1825,7 +1898,7 @@ def Shopify_set_stock_zero_metafield_unpublish(shop="", access_token="", api_ver
     
     # SET STOCK TO ZERO. VERY FAST, JUST 1 MUTATION WITH ALL INVENTORY ITEMS
     reference_document_uri = ""
-    custom_response=Shopify_set_inventory_to_zero(shop=shop, access_token=access_token, api_version="2025-01", inventory_item_ids=inventory_item_ids, location_id=location_id, reason=reason, reference_document_uri=reference_document_uri)
+    custom_response=Shopify_set_inventory_to_zero(shop=shop, access_token=access_token, api_version=API_VERSION, inventory_item_ids=inventory_item_ids, location_id=location_id, reason=reason, reference_document_uri=reference_document_uri)
     if custom_response.status_code != 200:
         error_message = "Error setting inventory to zero"
         print(error_message)
@@ -1833,7 +1906,7 @@ def Shopify_set_stock_zero_metafield_unpublish(shop="", access_token="", api_ver
     
     return CustomResponse(data="All OK", status_code=200)
 
-def Shopify_collection_unpublish(shop="", access_token="", api_version="2025-01", collection_id=""):
+def Shopify_collection_unpublish(shop="", access_token="", api_version=API_VERSION, collection_id=""):
     
     # GET PRODUCTS IN COLLECTION   
     print(f"Collection id: {collection_id}") 
@@ -1861,7 +1934,7 @@ def Shopify_collection_unpublish(shop="", access_token="", api_version="2025-01"
     message=f"Collection {collection_id}: {len(products)} products unpublished successfully."
     return CustomResponse(data=message, status_code=200)
 
-def Shopify_collection_archive(shop="", access_token="", api_version="2025-01", collection_id=""):
+def Shopify_collection_archive(shop="", access_token="", api_version=API_VERSION, collection_id=""):
     """
     Archives all products in the specified Shopify collection.
 
@@ -1910,7 +1983,7 @@ def Shopify_collection_archive(shop="", access_token="", api_version="2025-01", 
     print(message)
     return CustomResponse(data=message, status_code=200)
 
-def Shopify_publish_blog_post(shop="", access_token="", api_version="2025-01", blog_id="", title="", content="", author="", tags=[], published_at=None, image_path=None, image_url=None):
+def Shopify_publish_blog_post(shop="", access_token="", api_version=API_VERSION, blog_id="", title="", content="", author="", tags=[], published_at=None, image_path=None, image_url=None):
     """
     Publishes a blog post to Shopify.
 
@@ -1989,7 +2062,7 @@ def Shopify_publish_blog_post(shop="", access_token="", api_version="2025-01", b
         print(f"Error: {response.status_code} - {response.text}")
         return CustomResponse(data=response.text, status_code=response.status_code)
 
-def Shopify_upload_file(shop, access_token, api_version="2025-01", file_path="", file_name="", alt_text=""):
+def Shopify_upload_file(shop, access_token, api_version=API_VERSION, file_path="", file_name="", alt_text=""):
     """
     Uploads a file to Shopify.
 
@@ -2213,16 +2286,16 @@ def main():
         file_name = "test_image.png"
         alt_text = "alt-tag"
 
-        #result = Shopify_upload_file(shop=shop, access_token=access_token, api_version="2025-01", file_path=file_path, file_name=file_name, alt_text=alt_text)
+        #result = Shopify_upload_file(shop=shop, access_token=access_token, api_version=API_VERSION, file_path=file_path, file_name=file_name, alt_text=alt_text)
         #print(result.data)
         
-        # result = Shopify_upload_file_revised(shop=shop, access_token=access_token, api_version="2025-01", file_path=file_path, file_name=file_name, alt_text=alt_text)
+        # result = Shopify_upload_file_revised(shop=shop, access_token=access_token, api_version=API_VERSION, file_path=file_path, file_name=file_name, alt_text=alt_text)
         # print(result.data)
     if option == '5':
         access_token = access_token_vinzo
         shop = shop_vinzo
         filter_date="2024-09-27"
-        Shopify_set_stock_zero_metafield_unpublish(shop=shop, access_token=access_token, api_version="2025-01", metafield_key="custom.unpublish_after", filter_date=filter_date, reason="correction", reference_document_uri="")
+        Shopify_set_stock_zero_metafield_unpublish(shop=shop, access_token=access_token, api_version=API_VERSION, metafield_key="custom.unpublish_after", filter_date=filter_date, reason="correction", reference_document_uri="")
     if option == '6':
         access_token = access_token_vinzo
         shop = shop_vinzo
