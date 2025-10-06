@@ -495,6 +495,11 @@ def Shopify_get_products_query(shop="", access_token="", api_version="2024-01"):
                                     taxable
                                     barcode
                                     inventoryQuantity
+                                    inventoryItem {
+                                        weight
+                                        weightUnit
+                                        requiresShipping
+                                    }
                                 }
                             }
                         }
@@ -654,6 +659,11 @@ def Shopify_get_product_variants_mutation(shop="", access_token="", api_version=
               taxable
               barcode
               inventoryQuantity
+              inventoryItem {
+                weight
+                weightUnit
+                requiresShipping
+              }
             }
           }
         }
