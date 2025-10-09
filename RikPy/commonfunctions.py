@@ -97,21 +97,57 @@ def get_originator():
     
     return originator
 
-def send_email(email_type="info", email_message="Message", originator="", attachment=None, email_recipient=None):
+def send_email(email_type="info", email_message="Message", originator="", attachment=None, email_recipient=None, timeout=30, max_retries=3):
+    """
+    Send email with improved error handling, validation, and retry logic.
+    
+    Args:
+        email_type: Type of email ("info" or "error")
+        email_message: Email message content
+        originator: Origin of the email (auto-detected if empty)
+        attachment: File attachment (path, file-like object, or data)
+        email_recipient: Recipient email(s) - string, list, or None for default
+        timeout: SMTP timeout in seconds (default: 30)
+        max_retries: Maximum retry attempts (default: 3)
+    
+    Returns:
+        CustomResponse: Success/failure response with details
+    """
     
     load_dotenv()
 
     if not originator or originator == "":
         originator = get_originator()
 
-    try:
-        smtp_server = os.getenv("SMTP_SERVER")
-        smtp_port = os.getenv("SMTP_PORT")
-        smtp_user = os.getenv("SMTP_USER")
-        smtp_pass = os.getenv("SMTP_PASS")
-        default_recipient = os.getenv("ERROR_EMAIL_RECIPIENT")
+    # Validate environment variables
+    smtp_server = os.getenv("SMTP_SERVER")
+    smtp_port = os.getenv("SMTP_PORT")
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+    default_recipient = os.getenv("ERROR_EMAIL_RECIPIENT")
 
-         # Handle multiple recipients
+    if not all([smtp_server, smtp_port, smtp_user, smtp_pass, default_recipient]):
+        missing_vars = []
+        if not smtp_server: missing_vars.append("SMTP_SERVER")
+        if not smtp_port: missing_vars.append("SMTP_PORT")
+        if not smtp_user: missing_vars.append("SMTP_USER")
+        if not smtp_pass: missing_vars.append("SMTP_PASS")
+        if not default_recipient: missing_vars.append("ERROR_EMAIL_RECIPIENT")
+        
+        error_msg = f"Missing required environment variables: {', '.join(missing_vars)}"
+        rfplogger(error_msg)
+        return CustomResponse(data=error_msg, status_code=400)
+
+    # Validate and convert port to integer
+    try:
+        smtp_port = int(smtp_port)
+    except (ValueError, TypeError):
+        error_msg = f"Invalid SMTP_PORT: {smtp_port}. Must be a valid integer."
+        rfplogger(error_msg)
+        return CustomResponse(data=error_msg, status_code=400)
+
+    # Handle multiple recipients
+    try:
         if email_recipient is None:
             recipients = [default_recipient]
         elif isinstance(email_recipient, str):
@@ -120,81 +156,210 @@ def send_email(email_type="info", email_message="Message", originator="", attach
             recipients = email_recipient
         else:
             raise ValueError("email_recipient must be a string, list, or None")
+    except ValueError as e:
+        error_msg = f"Invalid email_recipient: {e}"
+        rfplogger(error_msg)
+        return CustomResponse(data=error_msg, status_code=400)
 
-        # Email content
-        message = MIMEMultipart()
-        message["From"] = smtp_user
-        message["To"] = ", ".join(recipients)
-        if email_type == "error":
-            email_subject = f"Error Notification from {originator} {date.today()}"
-        else:
-            email_subject = f"Info Notification from {originator} {date.today()}"
-        message["Subject"] = email_subject
-        
-        body = f"Message from the application:\n\n{email_message}"
-        message.attach(MIMEText(body, "plain"))
+    # Validate recipients
+    for recipient in recipients:
+        if not recipient or '@' not in recipient:
+            error_msg = f"Invalid email recipient: {recipient}"
+            rfplogger(error_msg)
+            return CustomResponse(data=error_msg, status_code=400)
 
-        # Attach file if provided
-        if attachment:
-            if isinstance(attachment, str) and os.path.isfile(attachment):
-                # If attachment is a file path
-                with open(attachment, "rb") as file:
-                    part = MIMEApplication(file.read(), Name=os.path.basename(attachment))
-                part['Content-Disposition'] = f'attachment; filename="{os.path.basename(attachment)}"'
-                message.attach(part)
-            elif hasattr(attachment, 'read'):
-                # If attachment is a file-like object
-                part = MIMEApplication(attachment.read())
-                part['Content-Disposition'] = f'attachment; filename="attachment"'
-                message.attach(part)
+    # Retry logic
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            # Email content
+            message = MIMEMultipart()
+            message["From"] = smtp_user
+            message["To"] = ", ".join(recipients)
+            if email_type == "error":
+                email_subject = f"Error Notification from {originator} {date.today()}"
             else:
-                # If attachment is some other object, convert to string
-                part = MIMEApplication(str(attachment).encode())
-                part['Content-Disposition'] = f'attachment; filename="attachment.txt"'
-                message.attach(part)
+                email_subject = f"Info Notification from {originator} {date.today()}"
+            message["Subject"] = email_subject
+            
+            body = f"Message from the application:\n\n{email_message}"
+            message.attach(MIMEText(body, "plain"))
 
-        # Send email
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()  # Secure the connection
-            server.login(smtp_user, smtp_pass)
-            response=server.sendmail(smtp_user, recipients, message.as_string())
-            # xlogger(response)
-    except Exception as e:
-        rfplogger(e)
-        print(f"Error sending email: {e}")
+            # Attach file if provided
+            if attachment:
+                try:
+                    if isinstance(attachment, str) and os.path.isfile(attachment):
+                        # If attachment is a file path
+                        with open(attachment, "rb") as file:
+                            part = MIMEApplication(file.read(), Name=os.path.basename(attachment))
+                        part['Content-Disposition'] = f'attachment; filename="{os.path.basename(attachment)}"'
+                        message.attach(part)
+                    elif hasattr(attachment, 'read'):
+                        # If attachment is a file-like object
+                        part = MIMEApplication(attachment.read())
+                        part['Content-Disposition'] = f'attachment; filename="attachment"'
+                        message.attach(part)
+                    else:
+                        # If attachment is some other object, convert to string
+                        part = MIMEApplication(str(attachment).encode())
+                        part['Content-Disposition'] = f'attachment; filename="attachment.txt"'
+                        message.attach(part)
+                except Exception as e:
+                    error_msg = f"Error processing attachment: {e}"
+                    rfplogger(error_msg)
+                    return CustomResponse(data=error_msg, status_code=400)
 
-def send_email_with_credentials(smtp_server, smtp_port,smtp_user, smtp_pass, email_recipient, email_subject = "Subject", email_message="Message", email_html_message="", originator=""):
+            # Send email with timeout
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=timeout) as server:
+                server.starttls()  # Secure the connection
+                server.login(smtp_user, smtp_pass)
+                response = server.sendmail(smtp_user, recipients, message.as_string())
+                
+            # Success - log and return
+            success_msg = f"Email sent successfully to {', '.join(recipients)} (attempt {attempt + 1})"
+            rfplogger(success_msg)
+            return CustomResponse(data={"message": success_msg, "recipients": recipients, "attempt": attempt + 1}, status_code=200)
+            
+        except smtplib.SMTPAuthenticationError as e:
+            error_msg = f"SMTP Authentication failed: {e}"
+            rfplogger(error_msg)
+            return CustomResponse(data=error_msg, status_code=401)  # Don't retry auth errors
+            
+        except smtplib.SMTPRecipientsRefused as e:
+            error_msg = f"SMTP Recipients refused: {e}"
+            rfplogger(error_msg)
+            return CustomResponse(data=error_msg, status_code=400)  # Don't retry recipient errors
+            
+        except smtplib.SMTPException as e:
+            last_error = f"SMTP Error (attempt {attempt + 1}/{max_retries}): {e}"
+            rfplogger(last_error)
+            if attempt < max_retries - 1:
+                import time
+                time.sleep(2 ** attempt)  # Exponential backoff
+                continue
+                
+        except Exception as e:
+            last_error = f"Unexpected error (attempt {attempt + 1}/{max_retries}): {e}"
+            rfplogger(last_error)
+            if attempt < max_retries - 1:
+                import time
+                time.sleep(2 ** attempt)  # Exponential backoff
+                continue
+
+    # All retries failed
+    final_error = f"Failed to send email after {max_retries} attempts. Last error: {last_error}"
+    rfplogger(final_error)
+    return CustomResponse(data=final_error, status_code=500)
+
+def send_email_with_credentials(smtp_server, smtp_port, smtp_user, smtp_pass, email_recipient, email_subject="Subject", email_message="Message", email_html_message="", originator="", timeout=30, max_retries=3):
+    """
+    Send email with explicit credentials and improved error handling.
+    
+    Args:
+        smtp_server: SMTP server address
+        smtp_port: SMTP server port
+        smtp_user: SMTP username
+        smtp_pass: SMTP password
+        email_recipient: Recipient email address
+        email_subject: Email subject
+        email_message: Plain text message
+        email_html_message: HTML message (optional)
+        originator: Origin of the email (auto-detected if empty)
+        timeout: SMTP timeout in seconds (default: 30)
+        max_retries: Maximum retry attempts (default: 3)
+    
+    Returns:
+        CustomResponse: Success/failure response with details
+    """
     
     if not originator or originator == "":
         originator = get_originator()
 
-    try:
-        # Email content
-        message = MIMEMultipart("alternative")
-        message["From"] = smtp_user
-        message["To"] = email_recipient
-        message["Subject"] = email_subject
-
-        if email_message:
-            message.attach(MIMEText(email_message, "plain"))
-        if email_html_message:
-            # Create and attach HTML content
-            html_content = MIMEText(email_html_message, "html")
-            message.attach(html_content)
-
-        # Send email
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()  # Secure the connection
-            server.login(smtp_user, smtp_pass)
-            response=server.sendmail(smtp_user, email_recipient, message.as_string())
-            print("Email sent successfully.")
-            return CustomResponse(data=response, status_code=200)
+    # Validate input parameters
+    if not all([smtp_server, smtp_port, smtp_user, smtp_pass, email_recipient]):
+        missing_params = []
+        if not smtp_server: missing_params.append("smtp_server")
+        if not smtp_port: missing_params.append("smtp_port")
+        if not smtp_user: missing_params.append("smtp_user")
+        if not smtp_pass: missing_params.append("smtp_pass")
+        if not email_recipient: missing_params.append("email_recipient")
         
-    except Exception as e:
-        errormessage=f"Error sending email: {e}"
-        rfplogger(errormessage)
-        print(errormessage)
-        return CustomResponse(data=errormessage, status_code=400)
+        error_msg = f"Missing required parameters: {', '.join(missing_params)}"
+        rfplogger(error_msg)
+        return CustomResponse(data=error_msg, status_code=400)
+
+    # Validate port
+    try:
+        smtp_port = int(smtp_port)
+    except (ValueError, TypeError):
+        error_msg = f"Invalid smtp_port: {smtp_port}. Must be a valid integer."
+        rfplogger(error_msg)
+        return CustomResponse(data=error_msg, status_code=400)
+
+    # Validate email recipient
+    if '@' not in email_recipient:
+        error_msg = f"Invalid email recipient: {email_recipient}"
+        rfplogger(error_msg)
+        return CustomResponse(data=error_msg, status_code=400)
+
+    # Retry logic
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            # Email content
+            message = MIMEMultipart("alternative")
+            message["From"] = smtp_user
+            message["To"] = email_recipient
+            message["Subject"] = email_subject
+
+            if email_message:
+                message.attach(MIMEText(email_message, "plain"))
+            if email_html_message:
+                # Create and attach HTML content
+                html_content = MIMEText(email_html_message, "html")
+                message.attach(html_content)
+
+            # Send email with timeout
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=timeout) as server:
+                server.starttls()  # Secure the connection
+                server.login(smtp_user, smtp_pass)
+                response = server.sendmail(smtp_user, email_recipient, message.as_string())
+                
+            # Success - log and return
+            success_msg = f"Email sent successfully to {email_recipient} (attempt {attempt + 1})"
+            rfplogger(success_msg)
+            return CustomResponse(data={"message": success_msg, "recipient": email_recipient, "attempt": attempt + 1}, status_code=200)
+            
+        except smtplib.SMTPAuthenticationError as e:
+            error_msg = f"SMTP Authentication failed: {e}"
+            rfplogger(error_msg)
+            return CustomResponse(data=error_msg, status_code=401)  # Don't retry auth errors
+            
+        except smtplib.SMTPRecipientsRefused as e:
+            error_msg = f"SMTP Recipients refused: {e}"
+            rfplogger(error_msg)
+            return CustomResponse(data=error_msg, status_code=400)  # Don't retry recipient errors
+            
+        except smtplib.SMTPException as e:
+            last_error = f"SMTP Error (attempt {attempt + 1}/{max_retries}): {e}"
+            rfplogger(last_error)
+            if attempt < max_retries - 1:
+                import time
+                time.sleep(2 ** attempt)  # Exponential backoff
+                continue
+                
+        except Exception as e:
+            last_error = f"Unexpected error (attempt {attempt + 1}/{max_retries}): {e}"
+            rfplogger(last_error)
+            if attempt < max_retries - 1:
+                import time
+                time.sleep(2 ** attempt)  # Exponential backoff
+                continue
+
+    # All retries failed
+    final_error = f"Failed to send email after {max_retries} attempts. Last error: {last_error}"
+    rfplogger(final_error)
+    return CustomResponse(data=final_error, status_code=500)
     
 def fetch_products_from_json_feed(url):
     """
@@ -205,11 +370,31 @@ def fetch_products_from_json_feed(url):
     return response.json()
 
 def main():
-    # Example usage of send_email function
+    # Example usage of improved send_email function
     try:
-        # Test sending an email with a simple message
-        response = get_originator() 
-        print(f"Originator: {response}")
+        # Test sending an email with improved error handling
+        response = send_email(
+            email_type="info",
+            email_message="This is a test message from the improved email function",
+            email_recipient="test@example.com"  # Replace with actual email
+        )
+        
+        if response.status_code == 200:
+            print(f"✅ Email sent successfully: {response.data}")
+        else:
+            print(f"❌ Email failed: {response.data}")
+            
+        # Test with environment variables (recommended approach)
+        response2 = send_email(
+            email_type="error",
+            email_message="This is an error notification",
+            # email_recipient=None  # Will use ERROR_EMAIL_RECIPIENT from .env
+        )
+        
+        if response2.status_code == 200:
+            print(f"✅ Error email sent successfully: {response2.data}")
+        else:
+            print(f"❌ Error email failed: {response2.data}")
 
     except Exception as e:
         print(f"An error occurred: {e}")
