@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.17](github.com/rfp-byte/RikPy/compare/v2.0.16...v2.0.17) (2025-10-09)
+
+
+### Bug Fixes
+
+* better send mail response ([92ae5da](github.com/rfp-byte/RikPy/commit/92ae5dac31873a4c67ea2e30f85976f46ac43587))
+
 ## [2.0.16](github.com/rfp-byte/RikPy/compare/v2.0.15...v2.0.16) (2025-10-06)
 
 
