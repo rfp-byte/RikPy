@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.16](github.com/rfp-byte/RikPy/compare/v2.0.15...v2.0.16) (2025-10-06)
+
+
+### Bug Fixes
+
+* deprecated shopify fields 7 ([b42e06e](github.com/rfp-byte/RikPy/commit/b42e06ee0eefb8c7c9badeb546a4cf00508600c2))
+
 ## [2.0.15](github.com/rfp-byte/RikPy/compare/v2.0.14...v2.0.15) (2025-10-06)
 
 
