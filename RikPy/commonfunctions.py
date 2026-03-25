@@ -97,19 +97,20 @@ def get_originator():
     
     return originator
 
-def send_email(email_type="info", email_message="Message", originator="", attachment=None, email_recipient=None, timeout=30, max_retries=3):
+def send_email(email_type="info", email_message="Message", originator="", attachment=None, email_recipient=None, email_html_message="", timeout=30, max_retries=3):
     """
     Send email with improved error handling, validation, and retry logic.
-    
+
     Args:
         email_type: Type of email ("info" or "error")
-        email_message: Email message content
+        email_message: Plain text email message content
         originator: Origin of the email (auto-detected if empty)
         attachment: File attachment (path, file-like object, or data)
         email_recipient: Recipient email(s) - string, list, or None for default
+        email_html_message: HTML email message content (optional)
         timeout: SMTP timeout in seconds (default: 30)
         max_retries: Maximum retry attempts (default: 3)
-    
+
     Returns:
         CustomResponse: Success/failure response with details
     """
@@ -173,7 +174,7 @@ def send_email(email_type="info", email_message="Message", originator="", attach
     for attempt in range(max_retries):
         try:
             # Email content
-            message = MIMEMultipart()
+            message = MIMEMultipart("alternative")
             message["From"] = smtp_user
             message["To"] = ", ".join(recipients)
             if email_type == "error":
@@ -181,9 +182,15 @@ def send_email(email_type="info", email_message="Message", originator="", attach
             else:
                 email_subject = f"Info Notification from {originator} {date.today()}"
             message["Subject"] = email_subject
-            
+
+            # Attach plain text message
             body = f"Message from the application:\n\n{email_message}"
             message.attach(MIMEText(body, "plain"))
+            
+            # Attach HTML message if provided
+            if email_html_message:
+                html_content = MIMEText(email_html_message, "html")
+                message.attach(html_content)
 
             # Attach file if provided
             if attachment:
