@@ -168,6 +168,12 @@ def send_email(email_type="info", email_message="Message", originator="", attach
             error_msg = f"Invalid email recipient: {recipient}"
             rfplogger(error_msg)
             return CustomResponse(data=error_msg, status_code=400)
+    
+    # Validate HTML message if provided
+    if email_html_message and not isinstance(email_html_message, str):
+        error_msg = "email_html_message must be a string"
+        rfplogger(error_msg)
+        return CustomResponse(data=error_msg, status_code=400)
 
     # Retry logic
     last_error = None
