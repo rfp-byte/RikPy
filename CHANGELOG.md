@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.18](github.com/rfp-byte/RikPy/compare/v2.0.17...v2.0.18) (2026-03-25)
+
+
+### Bug Fixes
+
+* add HTML message validation to send_email function ([a1e994c](github.com/rfp-byte/RikPy/commit/a1e994c5eff9185139739985af3c1716d33ea57d))
+
 ## [2.0.17](github.com/rfp-byte/RikPy/compare/v2.0.16...v2.0.17) (2025-10-09)
 
 
